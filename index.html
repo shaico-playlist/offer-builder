@@ -1,0 +1,812 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Offer Builder — Ideal-State Exercise</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --panel:#ffffff; --ink:#1c2330; --muted:#69717f;
+    --line:#e4e7ec; --accent:#3b6ef6; --accent-soft:#eaf0ff;
+    --group:#e08a00; --group-soft:#fdf2df; --aside:#f0f1f4;
+    --shadow:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.05);
+    --radius:12px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg); color:var(--ink); line-height:1.45;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1320px; margin:0 auto; padding:14px 20px 60px}
+  header.top{margin-bottom:8px}
+  h1{font-size:19px; margin:0 0 2px; letter-spacing:-.01em}
+  .lede{color:var(--muted); font-size:14px; margin:0; max-width:760px}
+  .prompt{
+    background:var(--accent-soft); border:1px solid #d5e0ff; color:#20325f;
+    border-radius:var(--radius); padding:10px 14px; margin:10px 0 12px; font-size:13px; line-height:1.4;
+  }
+  .prompt b{color:#16244a}
+  .toolbar{display:flex; gap:8px; flex-wrap:wrap; margin:0 0 16px}
+  button{
+    font:inherit; cursor:pointer; border:1px solid var(--line); background:#fff;
+    color:var(--ink); padding:8px 12px; border-radius:9px; box-shadow:var(--shadow);
+    transition:.12s;
+  }
+  button:hover{border-color:#c9cfda}
+  button.primary{background:var(--accent); border-color:var(--accent); color:#fff}
+  button.primary:hover{filter:brightness(.96)}
+  .cols{display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start}
+  @media (max-width:900px){.cols{grid-template-columns:1fr}}
+  .panel{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow)}
+  .panel h2{
+    font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted);
+    margin:0; padding:13px 15px; border-bottom:1px solid var(--line);
+  }
+  .panel h2 .count{color:#aab1bd; font-weight:600}
+  .zone{padding:12px; min-height:80px}
+  #paletteZone{display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px; align-content:start}
+  #placedZone{display:flex; flex-direction:column; gap:0; min-height:180px}
+  #asideZone{display:flex; flex-wrap:wrap; gap:8px; min-height:56px}
+  .drop-hint{color:#a4abb7; font-size:13px; text-align:center; padding:22px 8px; border:1.5px dashed #d7dbe3; border-radius:10px}
+  .card{
+    background:#fff; border:1px solid var(--line); border-radius:11px; padding:11px 13px;
+    box-shadow:var(--shadow); cursor:grab; user-select:none; position:relative;
+  }
+  .card:active{cursor:grabbing}
+  .card .label{font-weight:600; font-size:14.5px}
+  .card .sub{color:var(--muted); font-size:12.5px; margin-top:3px}
+  .card.dragging{opacity:.4}
+  /* placed cards */
+  .step{display:flex; align-items:stretch; gap:10px; padding-top:12px}
+  .step:first-child{padding-top:0}
+  .step .num{
+    flex:0 0 26px; height:26px; border-radius:50%; background:var(--accent-soft);
+    color:var(--accent); font-weight:700; font-size:13px; display:flex; align-items:center; justify-content:center;
+    margin-top:6px;
+  }
+  .step.grouped .num{visibility:hidden}
+  .step .body{flex:1 1 auto}
+  .step.grouped .body{border-left:3px solid var(--group); margin-left:11px; padding-left:12px}
+  .step .card{display:flex; flex-direction:column; align-items:stretch; gap:9px}
+  .card-head{display:flex; align-items:center; gap:8px}
+  .step .card .txt{flex:1 1 auto; min-width:0}
+  .step .card .sub{display:none}
+  .detail{width:100%; font:inherit; font-size:13px; padding:8px 10px; border:1px solid transparent; border-radius:9px; resize:vertical; min-height:34px; background:#f1f3f6; color:var(--ink)}
+  .detail::placeholder{color:#a4abb7; font-style:italic}
+  .detail:focus{outline:none; background:#fff; border-color:var(--accent)}
+  .rowbtns{display:flex; gap:4px; align-items:center; flex:0 0 auto; flex-wrap:nowrap}
+  .rowbtns button{
+    width:28px; height:26px; padding:0; font-size:13px; box-shadow:none; border-radius:7px; line-height:1;
+    color:#9aa1ad; border-color:transparent; background:transparent;
+    display:inline-flex; align-items:center; justify-content:center; transition:.12s;
+  }
+  .step .card:hover .rowbtns button{color:var(--muted)}
+  .rowbtns button:hover{background:var(--bg); border-color:var(--line); color:var(--ink)}
+  .rowbtns button.grp{color:var(--group)}
+  .rowbtns button.grp.on{background:var(--group-soft); border-color:#f0d49a; color:#9a5f00}
+  .rowbtns button.grp.sel{background:var(--group-soft); border-color:#f0d49a; color:#9a5f00}
+  .step .card.selecting{outline:2px solid var(--group); outline-offset:2px; background:#fffdf7}
+  .groupbar{display:flex; align-items:center; gap:8px; padding:8px 10px; margin-bottom:6px;
+    background:var(--group-soft); border:1px solid #f0d49a; border-radius:9px; font-size:13px; color:#8a5300}
+  .groupbar button.sm{padding:4px 10px; font-size:12.5px; box-shadow:none; border-radius:7px}
+  .groupbar button.primary.sm{background:var(--group); border-color:var(--group); color:#fff}
+  .groupbar button.sm:last-child{margin-left:auto}
+  .rowbtns button.rm:hover{color:#c0392b; border-color:#e6b4ac}
+  .grouptag{font-size:11px; color:var(--group); font-weight:600; margin:2px 0 0 2px}
+  /* aside */
+  #asideZone .card{background:var(--aside); box-shadow:none; opacity:.85}
+  #asideZone .card .sub{display:none}
+  .addrow{display:flex; gap:6px; padding:10px 12px; border-top:1px solid var(--line)}
+  .addrow input{flex:1 1 auto; font:inherit; padding:8px 10px; border:1px solid var(--line); border-radius:8px}
+  .addrow input:focus{outline:2px solid var(--accent-soft); border-color:var(--accent)}
+  .summary{margin-top:20px}
+  .summary textarea{
+    width:100%; min-height:150px; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:12.5px; padding:12px; border:1px solid var(--line); border-radius:10px; resize:vertical; background:#fff;
+  }
+  .notes{margin-top:14px}
+  .notes textarea{width:100%; min-height:70px; font:inherit; font-size:13.5px; padding:10px; border:1px solid var(--line); border-radius:10px; resize:vertical}
+  label.fld{font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); display:block; margin-bottom:6px}
+  .foot{color:#aab1bd; font-size:12px; margin-top:26px; text-align:center}
+  .insert-line{height:0; border-top:2px solid var(--accent); margin:0; border-radius:2px}
+  /* relate / connect */
+  .placed-wrap{position:relative}
+  #placedZone{padding-right:54px}
+  .linkscanvas{position:absolute; top:0; left:0; pointer-events:none; z-index:3}
+  .card.linking{outline:2px dashed #7c3aed; outline-offset:2px}
+  .rowbtns button.rel{color:#7c3aed}
+  .rowbtns button.rel.on{background:#f3ecff; border-color:#d6c2ff; color:#5b21b6}
+  .linkbanner{display:none; background:#f3ecff; border:1px solid #d6c2ff; color:#5b21b6; border-radius:9px; padding:9px 13px; font-size:13.5px; margin:0 0 14px}
+  .conns{margin-bottom:14px}
+  .conns-lbl{font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin-bottom:6px}
+  .conns-empty{color:#9aa1ad; font-size:13px}
+  .conn-row{display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px dashed var(--line)}
+  .conn-row:last-child{border-bottom:none}
+  .conn-lab{font-size:13px; font-weight:600; color:#5b21b6; white-space:nowrap}
+  .conn-note{flex:1 1 auto; min-width:80px; font:inherit; font-size:13px; padding:6px 9px; border:1px solid var(--line); border-radius:7px}
+  .conn-row>button{padding:2px 8px; box-shadow:none; color:var(--muted); border-radius:7px}
+  .badges{display:flex; gap:4px; margin-top:6px; flex-wrap:wrap}
+  .badge{display:inline-flex; align-items:center; justify-content:center; min-width:19px; height:19px; padding:0 5px; border-radius:6px; font-size:11px; font-weight:700; color:#fff; flex:0 0 auto}
+  /* preview modal */
+  .overlay{position:fixed; inset:0; background:rgba(20,26,38,.45); display:none; align-items:flex-start; justify-content:center; padding:40px 16px; z-index:50; overflow:auto}
+  .overlay.open{display:flex}
+  .modal{background:#fff; width:100%; max-width:640px; border-radius:14px; box-shadow:0 20px 60px rgba(16,24,40,.28); overflow:hidden}
+  .modal-head{display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid var(--line)}
+  .modal-head h3{margin:0; font-size:15px}
+  .modal-body{padding:20px 22px; max-height:72vh; overflow:auto}
+  .pv-title{font-size:21px; font-weight:700; margin:0 0 2px; letter-spacing:-.01em}
+  .pv-sub{color:var(--muted); font-size:13px; margin:0 0 14px}
+  .pv-step{display:flex; gap:12px; padding:12px 0; border-bottom:1px solid var(--line)}
+  .pv-step:last-of-type{border-bottom:none}
+  .pv-num{flex:0 0 24px; height:24px; border-radius:50%; background:var(--accent-soft); color:var(--accent); font-weight:700; font-size:12px; display:flex; align-items:center; justify-content:center; margin-top:1px}
+  .pv-piece + .pv-piece{margin-top:9px}
+  .pv-piece-label{font-weight:600; font-size:14px}
+  .pv-detail{color:#374151; font-size:13.5px; margin-top:3px; white-space:pre-wrap}
+  .pv-detail.empty{color:#b3b9c4; font-style:italic}
+  .pv-section-h{font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:18px 0 8px}
+  .pv-conn{font-size:13.5px; color:#5b21b6; padding:4px 0}
+  .pv-conn .n{color:var(--muted)}
+  .pv-empty{color:#9aa1ad; font-size:13.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Offer Builder</h1>
+    <p class="lede">A think-aloud exercise. There are no right answers — I just want to watch how you'd put an offer together.</p>
+  </header>
+
+  <div class="prompt" id="promptBox">
+    <b>Set up your offer from scratch — forget how any software does it today.</b>
+    Add the pieces you'd include into “Your setup,” in the order you'd tackle them, and note how you'd want each to work.
+    Group pieces you'd treat as one thing, connect ones that relate, and set aside anything that's not relevant to your business model.
+  </div>
+
+  <div class="toolbar">
+    <button class="primary" id="btnPreview">Preview</button>
+    <button id="btnDownload">Download results</button>
+    <button id="btnCopy">Copy results</button>
+    <button id="btnReset">Reset</button>
+    <span id="offerNameWrap" style="display:inline-flex;align-items:center;gap:8px;margin-left:auto">
+      <label class="fld" style="margin:0">Offer</label>
+      <input id="offerName" placeholder="e.g. the SUN membership" style="font:inherit;padding:7px 10px;border:1px solid var(--line);border-radius:8px"/>
+    </span>
+  </div>
+
+  <div class="linkbanner" id="linkBanner"></div>
+
+  <div class="cols">
+    <!-- Palette -->
+    <section class="panel" aria-label="Available pieces">
+      <h2>Pieces <span class="count" id="paletteCount"></span></h2>
+      <div class="zone" id="paletteZone" data-zone="palette"></div>
+      <div class="addrow">
+        <input id="customInput" placeholder="Add your own piece…" aria-label="Add your own piece"/>
+        <button id="btnAdd">Add</button>
+      </div>
+    </section>
+
+    <!-- Placed + Aside -->
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <section class="panel" aria-label="Your setup">
+        <h2>Your setup <span class="count" id="placedCount"></span></h2>
+        <div class="placed-wrap">
+          <div class="zone" id="placedZone" data-zone="placed"></div>
+          <svg class="linkscanvas" id="linkCanvas" xmlns="http://www.w3.org/2000/svg"></svg>
+        </div>
+      </section>
+      <section class="panel" aria-label="Not relevant to my business model">
+        <h2>Not relevant to my business model <span class="count" id="asideCount"></span></h2>
+        <div class="zone" id="asideZone" data-zone="aside"></div>
+      </section>
+    </div>
+  </div>
+
+  <div class="summary panel" style="padding:14px 16px">
+    <div class="conns">
+      <div class="conns-lbl">Connections</div>
+      <div id="connsWrap"></div>
+    </div>
+    <label class="fld">Live summary (updates as you build — copy into your notes)</label>
+    <textarea id="summaryOut" readonly></textarea>
+    <div class="notes">
+      <label class="fld">Moderator notes</label>
+      <textarea id="notes" placeholder="Reasoning, quotes, hesitations, what they grouped and why…"></textarea>
+    </div>
+  </div>
+
+  <p class="foot">Ideal-state offer-mapping exercise · runs fully offline · nothing is sent anywhere</p>
+</div>
+
+<div class="overlay" id="previewOverlay">
+  <div class="modal">
+    <div class="modal-head"><h3>Offer preview</h3><button id="btnClosePreview">Close</button></div>
+    <div class="modal-body" id="previewBody"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---- Master registry of pieces ----
+  var SEED = [
+    {id:"p_get",    label:"What the client gets",           sub:"The actual services or access they're buying"},
+    {id:"p_price",  label:"Pricing",                        sub:"The amount the client pays (e.g. $69)"},
+    {id:"p_cadence",label:"Recurring or one-time",          sub:"Is there an autopay, or a single payment? How often it charges"},
+    {id:"p_bill",   label:"How & when they're billed",      sub:"First charge, future charge dates, proration"},
+    {id:"p_agree",  label:"What they agree to",             sub:"Terms, waiver, signature, policies"},
+    {id:"p_perks",  label:"Perks & discounts",              sub:"Member pricing, % off other services or retail"},
+    {id:"p_elig",   label:"Who's eligible",                 sub:"Open to everyone, or limited (student, member-only, capped spots)"},
+    {id:"p_end",    label:"How it renews or ends",          sub:"Auto-renews, rolls over, or expires after a set time"},
+    {id:"p_commit", label:"Commitment period",              sub:"Minimum term locked in before they can cancel (e.g. 3 months)"},
+    {id:"p_cancel", label:"How they cancel",                sub:"What the client does to cancel — and when it takes effect"},
+    {id:"p_fail",   label:"If a payment fails",             sub:"Retries, pausing, who gets notified"},
+    {id:"p_track",  label:"What you track",                 sub:"Active members, revenue, who's not using it, who's expiring"},
+    {id:"p_self",   label:"What clients can do themselves", sub:"Cancel, pause/freeze, update card, add a family member"},
+    {id:"p_msg",    label:"Client messages",                sub:"Confirmations, reminders, “here's what you signed up for”"}
+  ];
+
+  var meta = {};        // id -> {label, sub, custom}
+  var palette = [];     // ids
+  var placed = [];      // ids (ordered)
+  var aside = [];       // ids
+  var groupOf = {};     // id -> groupId (items sharing a groupId, when contiguous, form one group)
+  var pendingGroup = {}; // id -> true, items currently selected to be grouped
+  var groupSeq = 0;     // counter for unique group ids
+  var customCount = 0;
+  var links = [];       // [{a, b, note}] relate/connect between two placed pieces
+  var pendingLink = null; // id of piece waiting to be connected
+  var details = {};     // id -> free-text "how should this work"
+  var badgeMap = {};    // id -> [{label,color}] connection tags for placed cards
+  var LINK_COLORS = ["#2563eb","#e11d48","#059669","#d97706","#7c3aed","#0891b2","#db2777","#4d7c0f"];
+  function linkColor(i){ return LINK_COLORS[i % LINK_COLORS.length]; }
+  function linkLabel(i){ return String.fromCharCode(65 + (i % 26)); }
+
+  function reset(){
+    meta = {}; palette = []; placed = []; aside = []; groupOf = {}; pendingGroup = {}; groupSeq = 0; customCount = 0;
+    links = []; pendingLink = null; details = {};
+    SEED.forEach(function(p){ meta[p.id] = {label:p.label, sub:p.sub, custom:false}; palette.push(p.id); });
+    render();
+  }
+
+  function findArray(id){
+    if(palette.indexOf(id) > -1) return palette;
+    if(placed.indexOf(id) > -1) return placed;
+    if(aside.indexOf(id) > -1) return aside;
+    return null;
+  }
+
+  function removeFrom(arr, id){ var i = arr.indexOf(id); if(i > -1) arr.splice(i,1); }
+
+  // Move an id into a destination zone at a given index (index optional -> append)
+  function moveItem(id, destName, index){
+    var src = findArray(id);
+    if(src) removeFrom(src, id);
+    var dest = destName === "palette" ? palette : destName === "placed" ? placed : aside;
+    if(typeof index !== "number" || index < 0 || index > dest.length) index = dest.length;
+    dest.splice(index, 0, id);
+    // Leaving the setup breaks this piece's group membership, selection, and connections
+    if(destName !== "placed"){
+      delete groupOf[id]; delete pendingGroup[id];
+      links = links.filter(function(l){ return l.a !== id && l.b !== id; });
+      if(pendingLink === id) pendingLink = null;
+    }
+    render();
+  }
+
+  // ---- Grouping (select items, then group them) ----
+  function groupIsContiguousWithPrev(id, idx){
+    return idx > 0 && groupOf[id] && groupOf[id] === groupOf[placed[idx - 1]];
+  }
+  function groupSelected(){
+    var sel = placed.filter(function(id){ return pendingGroup[id]; });
+    if(sel.length < 2){ pendingGroup = {}; render(); return; }
+    var gid = "g" + (groupSeq++);
+    // pull the selected items together (contiguous) at the position of the earliest one
+    var firstPos = placed.findIndex(function(id){ return pendingGroup[id]; });
+    var before = placed.slice(0, firstPos).filter(function(id){ return !pendingGroup[id]; }).length;
+    var ordered = placed.filter(function(id){ return pendingGroup[id]; });
+    var rest = placed.filter(function(id){ return !pendingGroup[id]; });
+    ordered.forEach(function(id){ groupOf[id] = gid; });
+    rest.splice(before, 0, ordered[0]);
+    for(var k = 1; k < ordered.length; k++){ rest.splice(before + k, 0, ordered[k]); }
+    placed = rest;
+    pendingGroup = {};
+    render();
+  }
+  function dissolveGroup(gid){
+    placed.forEach(function(id){ if(groupOf[id] === gid) delete groupOf[id]; });
+    render();
+  }
+  function toggleSelect(id){
+    if(pendingGroup[id]) delete pendingGroup[id]; else pendingGroup[id] = true;
+    render();
+  }
+  function pendingCount(){ return Object.keys(pendingGroup).length; }
+
+  // ---- Rendering ----
+  function makeCard(id, opts){
+    opts = opts || {};
+    var m = meta[id];
+    var card = document.createElement("div");
+    card.className = "card";
+    card.setAttribute("draggable","true");
+    card.dataset.id = id;
+    if(id === pendingLink) card.classList.add("linking");
+    if(pendingGroup[id]) card.classList.add("selecting");
+
+    var txt = document.createElement("div");
+    txt.className = "txt";
+    var lab = document.createElement("div"); lab.className = "label"; lab.textContent = m.label;
+    txt.appendChild(lab);
+    if(m.sub){ var s = document.createElement("div"); s.className = "sub"; s.textContent = m.sub; txt.appendChild(s); }
+
+    if(opts.controls && badgeMap[id] && badgeMap[id].length){
+      var bwrap = document.createElement("div"); bwrap.className = "badges";
+      badgeMap[id].forEach(function(b){
+        var pill = document.createElement("span"); pill.className = "badge";
+        pill.style.background = b.color; pill.textContent = b.label; pill.title = "Connection " + b.label;
+        bwrap.appendChild(pill);
+      });
+      txt.appendChild(bwrap);
+    }
+
+    if(opts.controls){
+      var head = document.createElement("div"); head.className = "card-head";
+      head.appendChild(txt);
+
+      var btns = document.createElement("div");
+      btns.className = "rowbtns";
+
+      var up = document.createElement("button"); up.type="button"; up.textContent="↑"; up.title="Move up";
+      up.onclick = function(e){ e.stopPropagation(); var i = placed.indexOf(id); if(i>0){ placed.splice(i,1); placed.splice(i-1,0,id); render(); } };
+      var dn = document.createElement("button"); dn.type="button"; dn.textContent="↓"; dn.title="Move down";
+      dn.onclick = function(e){ e.stopPropagation(); var i = placed.indexOf(id); if(i<placed.length-1){ placed.splice(i,1); placed.splice(i+1,0,id); render(); } };
+
+      var grp = document.createElement("button"); grp.type="button"; grp.className="grp";
+      if(groupOf[id]){
+        grp.classList.add("on"); grp.textContent="⊖"; grp.title="Ungroup";
+        grp.onclick = function(e){ e.stopPropagation(); dissolveGroup(groupOf[id]); };
+      } else {
+        if(pendingGroup[id]){ grp.classList.add("sel"); grp.textContent="☑"; grp.title="Selected — click to deselect"; }
+        else { grp.textContent="⊕"; grp.title="Select to group with others"; }
+        grp.onclick = function(e){ e.stopPropagation(); toggleSelect(id); };
+      }
+
+      var rel = document.createElement("button"); rel.type="button"; rel.className="rel"; rel.textContent="🔗";
+      rel.title="Connect this piece to another it should relate to";
+      if(pendingLink === id){ rel.classList.add("on"); rel.title="Cancel connecting"; }
+      rel.onclick = function(e){ e.stopPropagation();
+        if(pendingLink === null){ pendingLink = id; }
+        else if(pendingLink === id){ pendingLink = null; }
+        else { addLink(pendingLink, id); pendingLink = null; }
+        render();
+      };
+
+      var rm = document.createElement("button"); rm.type="button"; rm.className="rm"; rm.textContent="✕"; rm.title="Send back to pieces";
+      rm.onclick = function(e){ e.stopPropagation(); moveItem(id,"palette"); };
+
+      btns.appendChild(up); btns.appendChild(dn); btns.appendChild(grp); btns.appendChild(rel); btns.appendChild(rm);
+      head.appendChild(btns);
+      card.appendChild(head);
+
+      var detail = document.createElement("textarea");
+      detail.className = "detail";
+      detail.rows = 1;
+      detail.placeholder = "Optional notes";
+      detail.value = details[id] || "";
+      detail.setAttribute("draggable","false");
+      detail.addEventListener("input", function(){ details[id] = detail.value; updateSummary(); });
+      detail.addEventListener("click", function(e){ e.stopPropagation(); });
+      detail.addEventListener("mousedown", function(e){ e.stopPropagation(); card.setAttribute("draggable","false"); });
+      detail.addEventListener("focus", function(){ card.setAttribute("draggable","false"); });
+      detail.addEventListener("blur", function(){ card.setAttribute("draggable","true"); });
+      card.appendChild(detail);
+    } else {
+      card.appendChild(txt);
+    }
+
+    // drag handlers
+    card.addEventListener("dragstart", function(e){
+      dragId = id; card.classList.add("dragging");
+      try{ e.dataTransfer.setData("text/plain", id); e.dataTransfer.effectAllowed="move"; }catch(_){}
+    });
+    card.addEventListener("dragend", function(){ dragId = null; card.classList.remove("dragging"); clearHints(); });
+
+    // click behaviour: complete a connection, or quick-add from the palette
+    card.addEventListener("click", function(){
+      if(pendingLink && pendingLink !== id && placed.indexOf(id) > -1){
+        addLink(pendingLink, id); pendingLink = null; render(); return;
+      }
+      if(!pendingLink && palette.indexOf(id) > -1){
+        moveItem(id, "placed"); return;
+      }
+    });
+
+    return card;
+  }
+
+  function render(){
+    // connection color tags (by link index, so line / card tag / list all match)
+    badgeMap = {};
+    links.forEach(function(l, i){
+      var c = linkColor(i), lab = linkLabel(i);
+      (badgeMap[l.a] = badgeMap[l.a] || []).push({label:lab, color:c});
+      (badgeMap[l.b] = badgeMap[l.b] || []).push({label:lab, color:c});
+    });
+
+    // palette
+    var pz = document.getElementById("paletteZone"); pz.innerHTML = "";
+    if(!palette.length){ pz.appendChild(hint("All pieces placed — drag any back here to remove")); }
+    palette.forEach(function(id){ pz.appendChild(makeCard(id)); });
+
+    // placed (with step numbers + grouping)
+    var plz = document.getElementById("placedZone"); plz.innerHTML = "";
+
+    // group action bar (appears while pieces are selected)
+    if(pendingCount() > 0){
+      var bar = document.createElement("div"); bar.className = "groupbar";
+      var msg = document.createElement("span"); msg.textContent = pendingCount() + " selected";
+      var mk = document.createElement("button"); mk.type="button"; mk.className="primary sm"; mk.textContent="Group these";
+      if(pendingCount() < 2){ mk.disabled = true; mk.style.opacity = ".5"; }
+      mk.onclick = function(){ groupSelected(); };
+      var clr = document.createElement("button"); clr.type="button"; clr.className="sm"; clr.textContent="Clear";
+      clr.onclick = function(){ pendingGroup = {}; render(); };
+      bar.appendChild(msg); bar.appendChild(mk); bar.appendChild(clr);
+      plz.appendChild(bar);
+    }
+
+    if(!placed.length){ plz.appendChild(hint("Drag pieces here in the order you'd set them up")); }
+    var step = 0;
+    placed.forEach(function(id, idx){
+      var grouped = groupIsContiguousWithPrev(id, idx);
+      if(!grouped) step++;
+      var row = document.createElement("div");
+      row.className = "step" + (grouped ? " grouped" : "");
+      var num = document.createElement("div"); num.className="num"; num.textContent = step;
+      var body = document.createElement("div"); body.className="body";
+      body.appendChild(makeCard(id, {controls:true}));
+      if(grouped){ var tag=document.createElement("div"); tag.className="grouptag"; tag.textContent="↳ grouped"; body.appendChild(tag); }
+      row.appendChild(num); row.appendChild(body);
+      plz.appendChild(row);
+    });
+
+    // aside
+    var az = document.getElementById("asideZone"); az.innerHTML = "";
+    if(!aside.length){ az.appendChild(hint("Optional — drag pieces that aren't relevant to your business here")); }
+    aside.forEach(function(id){ az.appendChild(makeCard(id)); });
+
+    document.getElementById("paletteCount").textContent = palette.length ? "("+palette.length+")" : "";
+    document.getElementById("placedCount").textContent  = placed.length  ? "("+placed.length+")"  : "";
+    document.getElementById("asideCount").textContent   = aside.length   ? "("+aside.length+")"   : "";
+
+    renderConns();
+    updateBanner();
+    updateSummary();
+    requestAnimationFrame(positionLinks);
+  }
+
+  function hint(t){ var d=document.createElement("div"); d.className="drop-hint"; d.textContent=t; return d; }
+
+  // ---- Relate / connect ----
+  function addLink(a, b){
+    if(a === b) return;
+    for(var i=0;i<links.length;i++){
+      var l = links[i];
+      if((l.a===a && l.b===b) || (l.a===b && l.b===a)) return; // already linked
+    }
+    links.push({a:a, b:b, note:""});
+  }
+  function removeLink(i){ links.splice(i,1); render(); }
+
+  function updateBanner(){
+    var b = document.getElementById("linkBanner");
+    if(pendingLink && meta[pendingLink]){
+      b.style.display = "block";
+      b.textContent = "Connecting “" + meta[pendingLink].label + "” — click another placed piece to link it (or press Esc to cancel).";
+    } else { b.style.display = "none"; b.textContent = ""; }
+  }
+
+  function svgEl(name, attrs){
+    var e = document.createElementNS("http://www.w3.org/2000/svg", name);
+    for(var k in attrs){ if(attrs.hasOwnProperty(k)) e.setAttribute(k, attrs[k]); }
+    return e;
+  }
+
+  function positionLinks(){
+    var canvas = document.getElementById("linkCanvas");
+    if(!canvas) return;
+    var wrap = canvas.parentNode;
+    var cr = wrap.getBoundingClientRect();
+    canvas.setAttribute("width", cr.width);
+    canvas.setAttribute("height", cr.height);
+    canvas.style.width = cr.width + "px";
+    canvas.style.height = cr.height + "px";
+    while(canvas.firstChild) canvas.removeChild(canvas.firstChild);
+    links.forEach(function(l, i){
+      var ea = document.querySelector('#placedZone .card[data-id="' + l.a + '"]');
+      var eb = document.querySelector('#placedZone .card[data-id="' + l.b + '"]');
+      if(!ea || !eb) return;
+      var ra = ea.getBoundingClientRect(), rb = eb.getBoundingClientRect();
+      var ax = ra.right - cr.left, ay = ra.top - cr.top + ra.height/2;
+      var bx = rb.right - cr.left, by = rb.top - cr.top + rb.height/2;
+      var col = linkColor(i);
+      var rail = cr.width - 8 - (i % 4) * 9;
+      var d = "M " + ax + " " + ay + " H " + rail + " V " + by + " H " + bx;
+      canvas.appendChild(svgEl("path", {d:d, fill:"none", stroke:col, "stroke-width":"2.5", "stroke-linejoin":"round", "stroke-linecap":"round", opacity:"0.9"}));
+      var midY = (ay + by) / 2;
+      var g = svgEl("g", {style:"pointer-events:auto;cursor:pointer"});
+      g.appendChild(svgEl("title", {})).textContent = "Remove connection " + linkLabel(i);
+      g.appendChild(svgEl("circle", {cx:rail, cy:midY, r:"9", fill:col, stroke:"#fff", "stroke-width":"1.5"}));
+      var t = svgEl("text", {x:rail, y:midY+3.5, "text-anchor":"middle", "font-size":"10", "font-weight":"700", fill:"#fff"});
+      t.textContent = linkLabel(i);
+      g.appendChild(t);
+      g.addEventListener("click", function(){ removeLink(i); });
+      canvas.appendChild(g);
+    });
+  }
+
+  function renderConns(){
+    var w = document.getElementById("connsWrap");
+    w.innerHTML = "";
+    if(!links.length){
+      var e = document.createElement("div"); e.className = "conns-empty";
+      e.textContent = "No connections yet — click “🔗 relate” on a placed piece, then click another piece it should relate to.";
+      w.appendChild(e); return;
+    }
+    links.forEach(function(l, i){
+      var row = document.createElement("div"); row.className = "conn-row";
+      var badge = document.createElement("span"); badge.className = "badge";
+      badge.style.background = linkColor(i); badge.textContent = linkLabel(i);
+      row.appendChild(badge);
+      var lab = document.createElement("span"); lab.className = "conn-lab";
+      lab.textContent = meta[l.a].label + "  ↔  " + meta[l.b].label;
+      var note = document.createElement("input"); note.className = "conn-note";
+      note.placeholder = "how do they relate? (optional)"; note.value = l.note || "";
+      note.addEventListener("input", function(){ l.note = note.value; updateSummary(); });
+      var rm = document.createElement("button"); rm.type = "button"; rm.textContent = "✕"; rm.title = "Remove connection";
+      rm.onclick = function(){ removeLink(i); };
+      row.appendChild(lab); row.appendChild(note); row.appendChild(rm);
+      w.appendChild(row);
+    });
+  }
+
+  // ---- Drag & drop on zones ----
+  var dragId = null;
+
+  function getInsertIndex(zoneEl, y){
+    var cards = Array.prototype.slice.call(zoneEl.querySelectorAll(".step"));
+    for(var i=0;i<cards.length;i++){
+      var r = cards[i].getBoundingClientRect();
+      if(y < r.top + r.height/2) return i;
+    }
+    return cards.length;
+  }
+
+  function clearHints(){
+    var l = document.querySelector(".insert-line"); if(l) l.parentNode.removeChild(l);
+  }
+
+  function setupZone(zoneEl){
+    zoneEl.addEventListener("dragover", function(e){
+      e.preventDefault();
+      try{ e.dataTransfer.dropEffect = "move"; }catch(_){}
+      if(zoneEl.dataset.zone === "placed" && dragId){
+        clearHints();
+        var idx = getInsertIndex(zoneEl, e.clientY);
+        var line = document.createElement("div"); line.className="insert-line";
+        var steps = zoneEl.querySelectorAll(".step");
+        if(idx >= steps.length){ zoneEl.appendChild(line); }
+        else { zoneEl.insertBefore(line, steps[idx]); }
+      }
+    });
+    zoneEl.addEventListener("dragleave", function(e){
+      if(e.target === zoneEl) clearHints();
+    });
+    zoneEl.addEventListener("drop", function(e){
+      e.preventDefault();
+      var id = dragId || (e.dataTransfer && e.dataTransfer.getData("text/plain"));
+      clearHints();
+      if(!id || !meta[id]) return;
+      var zone = zoneEl.dataset.zone;
+      if(zone === "placed"){
+        var idx = getInsertIndex(zoneEl, e.clientY);
+        // adjust index if moving within placed and removing shifts positions
+        var cur = placed.indexOf(id);
+        if(cur > -1 && cur < idx) idx--;
+        moveItem(id, "placed", idx);
+      } else {
+        moveItem(id, zone);
+      }
+    });
+  }
+
+  // ---- Summary ----
+  function updateSummary(){
+    var name = (document.getElementById("offerName").value || "").trim();
+    var lines = [];
+    lines.push("OFFER: " + (name || "(unnamed)"));
+    lines.push("");
+    lines.push("YOUR SETUP (in order):");
+    if(!placed.length){ lines.push("  (nothing placed yet)"); }
+    var step = 0, buffer = [];
+    function flush(){
+      if(!buffer.length) return;
+      lines.push("  " + step + ". " + buffer.map(function(o){ return o.label; }).join("  +  "));
+      buffer.forEach(function(o){ if(o.detail) lines.push("       • " + o.label + ": " + o.detail); });
+      buffer = [];
+    }
+    placed.forEach(function(id, idx){
+      var grouped = groupIsContiguousWithPrev(id, idx);
+      if(!grouped){ flush(); step++; }
+      buffer.push({ label: meta[id].label + (meta[id].custom ? " *" : ""), detail: (details[id]||"").trim() });
+    });
+    flush();
+    if(aside.length){
+      lines.push("");
+      lines.push("NOT RELEVANT TO MY BUSINESS MODEL:");
+      aside.forEach(function(id){ lines.push("  - " + meta[id].label + (meta[id].custom?" *":"")); });
+    }
+    if(palette.length){
+      lines.push("");
+      lines.push("NOT TOUCHED:");
+      palette.forEach(function(id){ lines.push("  - " + meta[id].label + (meta[id].custom?" *":"")); });
+    }
+    if(links.length){
+      lines.push("");
+      lines.push("CONNECTIONS (should relate):");
+      links.forEach(function(l){
+        lines.push("  - " + meta[l.a].label + "  <->  " + meta[l.b].label + (l.note ? ("   (" + l.note + ")") : ""));
+      });
+    }
+    var customs = Object.keys(meta).filter(function(id){return meta[id].custom;});
+    if(customs.length){ lines.push(""); lines.push("* = participant's own piece"); }
+    var notes = (document.getElementById("notes").value || "").trim();
+    if(notes){ lines.push(""); lines.push("NOTES:"); lines.push("  " + notes.replace(/\n/g,"\n  ")); }
+    document.getElementById("summaryOut").value = lines.join("\n");
+  }
+
+  // ---- Preview ----
+  function buildPreview(){
+    var body = document.getElementById("previewBody");
+    body.innerHTML = "";
+    var name = (document.getElementById("offerName").value || "").trim();
+    var t = document.createElement("div"); t.className = "pv-title"; t.textContent = name || "Your offer";
+    body.appendChild(t);
+    var sub = document.createElement("div"); sub.className = "pv-sub";
+    sub.textContent = "How you'd set it up — review before it goes live.";
+    body.appendChild(sub);
+
+    if(!placed.length){
+      var e = document.createElement("div"); e.className = "pv-empty"; e.textContent = "Nothing added yet.";
+      body.appendChild(e);
+    } else {
+      var steps = [], cur = null;
+      placed.forEach(function(id, idx){
+        var grouped = groupIsContiguousWithPrev(id, idx);
+        if(!grouped){ cur = {ids:[]}; steps.push(cur); }
+        cur.ids.push(id);
+      });
+      steps.forEach(function(st, i){
+        var row = document.createElement("div"); row.className = "pv-step";
+        var num = document.createElement("div"); num.className = "pv-num"; num.textContent = (i+1);
+        var content = document.createElement("div"); content.style.flex = "1 1 auto";
+        st.ids.forEach(function(id){
+          var p = document.createElement("div"); p.className = "pv-piece";
+          var lab = document.createElement("div"); lab.className = "pv-piece-label"; lab.textContent = meta[id].label;
+          p.appendChild(lab);
+          var d = (details[id] || "").trim();
+          var det = document.createElement("div");
+          det.className = "pv-detail" + (d ? "" : " empty");
+          det.textContent = d || "— no detail added —";
+          p.appendChild(det);
+          content.appendChild(p);
+        });
+        row.appendChild(num); row.appendChild(content);
+        body.appendChild(row);
+      });
+    }
+
+    if(links.length){
+      var h = document.createElement("div"); h.className = "pv-section-h"; h.textContent = "Connections"; body.appendChild(h);
+      links.forEach(function(l){
+        var c = document.createElement("div"); c.className = "pv-conn";
+        c.textContent = meta[l.a].label + "  ↔  " + meta[l.b].label;
+        if(l.note){ var n = document.createElement("span"); n.className = "n"; n.textContent = "  — " + l.note; c.appendChild(n); }
+        body.appendChild(c);
+      });
+    }
+
+    if(aside.length){
+      var h2 = document.createElement("div"); h2.className = "pv-section-h"; h2.textContent = "Not relevant to the business"; body.appendChild(h2);
+      var txt = document.createElement("div"); txt.className = "pv-empty";
+      txt.textContent = aside.map(function(id){ return meta[id].label; }).join(", ");
+      body.appendChild(txt);
+    }
+  }
+  function openPreview(){ buildPreview(); document.getElementById("previewOverlay").classList.add("open"); }
+  function closePreview(){ document.getElementById("previewOverlay").classList.remove("open"); }
+
+  // ---- Custom pieces ----
+  function addCustom(){
+    var inp = document.getElementById("customInput");
+    var v = (inp.value || "").trim();
+    if(!v) return;
+    customCount++;
+    var id = "c_" + customCount;
+    meta[id] = {label:v, sub:"(your own)", custom:true};
+    palette.push(id);
+    inp.value = "";
+    render();
+    inp.focus();
+  }
+
+  // ---- Copy ----
+  function copyResults(){
+    updateSummary();
+    var ta = document.getElementById("summaryOut");
+    ta.removeAttribute("readonly"); ta.select(); ta.setSelectionRange(0, 99999);
+    var ok = false;
+    try{ ok = document.execCommand("copy"); }catch(_){}
+    ta.setAttribute("readonly","readonly");
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(ta.value).then(function(){ flash("Copied results ✓"); }, function(){ flash(ok?"Copied results ✓":"Select the summary and copy manually"); });
+    } else {
+      flash(ok?"Copied results ✓":"Select the summary and copy manually");
+    }
+  }
+  function flash(msg){
+    var b = document.getElementById("btnCopy"); var old = b.textContent;
+    b.textContent = msg; setTimeout(function(){ b.textContent = old; }, 1400);
+  }
+
+  // ---- Download ----
+  function slug(s){ return (s||"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,40); }
+  function downloadResults(){
+    updateSummary();
+    var name = (document.getElementById("offerName").value || "").trim();
+    var d = new Date();
+    var stamp = d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0") +
+                "_" + String(d.getHours()).padStart(2,"0") + String(d.getMinutes()).padStart(2,"0");
+    var header = "Offer Builder — ideal-state exercise\nSaved: " + d.toLocaleString() + "\n" + "=".repeat(44) + "\n\n";
+    var body = header + document.getElementById("summaryOut").value + "\n";
+    var fname = "offer-builder_" + (slug(name) || "session") + "_" + stamp + ".txt";
+    var blob = new Blob([body], {type:"text/plain;charset=utf-8"});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = fname;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1500);
+    var b = document.getElementById("btnDownload"); var old = b.textContent;
+    b.textContent = "Saved ✓"; setTimeout(function(){ b.textContent = old; }, 1400);
+  }
+
+  // ---- Wire up ----
+  ["paletteZone","placedZone","asideZone"].forEach(function(zid){ setupZone(document.getElementById(zid)); });
+  document.getElementById("btnAdd").onclick = addCustom;
+  document.getElementById("customInput").addEventListener("keydown", function(e){ if(e.key==="Enter") addCustom(); });
+  document.getElementById("btnReset").onclick = function(){ if(confirm("Clear everything and start over?")) reset(); };
+  document.getElementById("btnCopy").onclick = copyResults;
+  document.getElementById("btnDownload").onclick = downloadResults;
+  document.getElementById("btnPreview").onclick = openPreview;
+  document.getElementById("btnClosePreview").onclick = closePreview;
+  document.getElementById("previewOverlay").addEventListener("click", function(e){ if(e.target === this) closePreview(); });
+  document.getElementById("offerName").addEventListener("input", updateSummary);
+  document.getElementById("notes").addEventListener("input", updateSummary);
+  document.addEventListener("keydown", function(e){
+    if(e.key !== "Escape") return;
+    var ov = document.getElementById("previewOverlay");
+    if(ov.classList.contains("open")){ closePreview(); return; }
+    if(pendingLink){ pendingLink = null; render(); }
+  });
+  window.addEventListener("resize", positionLinks);
+
+  reset();
+})();
+</script>
+</body>
+</html>
