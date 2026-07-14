@@ -248,7 +248,7 @@
     {id:"p_cadence",label:"Recurring or one-time",          sub:"Is there an autopay, or a single payment? How often it charges"},
     {id:"p_bill",   label:"How & when they're billed",      sub:"First charge, future charge dates, proration"},
     {id:"p_agree",  label:"What they agree to",             sub:"Terms, waiver, signature, policies"},
-    {id:"p_perks",  label:"Perks & discounts",              sub:"Member pricing, % off services/retail, intro offers (first month free, 50% off month one, first-50 deal)"},
+    {id:"p_perks",  label:"Perks & discounts",              sub:"Member pricing, % off services/retail, intro offers (e.g. first month free)"},
     {id:"p_elig",   label:"Who's eligible",                 sub:"Open to everyone, or limited (student, member-only, capped spots)"},
     {id:"p_end",    label:"How it renews or ends",          sub:"Auto-renews, rolls over, or expires after a set time"},
     {id:"p_commit", label:"Commitment period",              sub:"Minimum term locked in before they can cancel (e.g. 3 months)"},
@@ -353,6 +353,7 @@
     var txt = document.createElement("div");
     txt.className = "txt";
     var lab = document.createElement("div"); lab.className = "label"; lab.textContent = m.label;
+    if(m.sub) lab.title = m.sub;
     txt.appendChild(lab);
     if(m.sub){ var s = document.createElement("div"); s.className = "sub"; s.textContent = m.sub; txt.appendChild(s); }
 
