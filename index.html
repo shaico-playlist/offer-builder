@@ -59,7 +59,7 @@
   .card .sub{color:var(--muted); font-size:12.5px; margin-top:3px}
   .card.dragging{opacity:.4}
   /* placed cards */
-  .step{display:flex; align-items:stretch; gap:10px; padding-top:12px}
+  .step{display:flex; align-items:stretch; gap:10px; padding-top:7px}
   .step:first-child{padding-top:0}
   .step .num{
     flex:0 0 26px; height:26px; border-radius:50%; background:var(--accent-soft);
@@ -69,11 +69,11 @@
   .step.grouped .num{visibility:hidden}
   .step .body{flex:1 1 auto}
   .step.grouped .body{border-left:3px solid var(--group); margin-left:11px; padding-left:12px}
-  .step .card{display:flex; flex-direction:column; align-items:stretch; gap:9px}
+  .step .card{display:flex; flex-direction:column; align-items:stretch; gap:6px; padding:9px 11px}
   .card-head{display:flex; align-items:center; gap:8px}
   .step .card .txt{flex:1 1 auto; min-width:0}
   .step .card .sub{display:none}
-  .detail{width:100%; font:inherit; font-size:13px; padding:8px 10px; border:1px solid transparent; border-radius:9px; resize:vertical; min-height:34px; background:#f1f3f6; color:var(--ink)}
+  .detail{width:100%; font:inherit; font-size:12.5px; padding:5px 9px; border:1px solid transparent; border-radius:8px; resize:vertical; min-height:0; height:30px; background:#f1f3f6; color:var(--ink)}
   .detail::placeholder{color:#a4abb7; font-style:italic}
   .detail:focus{outline:none; background:#fff; border-color:var(--accent)}
   .rowbtns{display:flex; gap:4px; align-items:center; flex:0 0 auto; flex-wrap:nowrap}
@@ -118,6 +118,7 @@
   .card.linking{outline:2px dashed #7c3aed; outline-offset:2px}
   .rowbtns button.rel{color:#7c3aed}
   .rowbtns button.rel.on{background:#f3ecff; border-color:#d6c2ff; color:#5b21b6}
+  .rowbtns button.note.on{color:var(--accent); background:var(--accent-soft); border-color:#cfe0ff}
   .linkbanner{display:none; background:#f3ecff; border:1px solid #d6c2ff; color:#5b21b6; border-radius:9px; padding:9px 13px; font-size:13.5px; margin:0 0 14px}
   .conns{margin-bottom:14px}
   .conns-lbl{font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin-bottom:6px}
@@ -175,8 +176,8 @@
 
   <div class="toolbar">
     <button class="primary" id="btnPreview">Preview</button>
-    <button id="btnDownload">Download results</button>
-    <button id="btnCopy">Copy results</button>
+    <button id="btnDownload">Save as PDF</button>
+    <button id="btnCopy">Copy as text</button>
     <button id="btnReset">Reset</button>
     <span id="offerNameWrap" style="display:inline-flex;align-items:center;gap:8px;margin-left:auto">
       <label class="fld" style="margin:0">Offer</label>
@@ -269,6 +270,8 @@
   var links = [];       // [{a, b, note}] relate/connect between two placed pieces
   var pendingLink = null; // id of piece waiting to be connected
   var details = {};     // id -> free-text "how should this work"
+  var noteOpen = {};    // id -> bool, whether the note box is expanded
+  var pendingFocusNote = null; // id whose note box should grab focus after render
   var badgeMap = {};    // id -> [{label,color}] connection tags for placed cards
   var LINK_COLORS = ["#2563eb","#e11d48","#059669","#d97706","#7c3aed","#0891b2","#db2777","#4d7c0f"];
   function linkColor(i){ return LINK_COLORS[i % LINK_COLORS.length]; }
@@ -276,7 +279,7 @@
 
   function reset(){
     meta = {}; palette = []; placed = []; aside = []; groupOf = {}; pendingGroup = {}; groupSeq = 0; customCount = 0;
-    links = []; pendingLink = null; details = {};
+    links = []; pendingLink = null; details = {}; noteOpen = {}; pendingFocusNote = null;
     SEED.forEach(function(p){ meta[p.id] = {label:p.label, sub:p.sub, custom:false}; palette.push(p.id); });
     render();
   }
@@ -395,25 +398,39 @@
         render();
       };
 
+      var noteBtn = document.createElement("button"); noteBtn.type="button"; noteBtn.className="note"; noteBtn.textContent="✎";
+      var hasNote = (details[id]||"").trim().length > 0;
+      var showNote = noteOpen[id] || hasNote;
+      if(showNote){ noteBtn.classList.add("on"); }
+      noteBtn.title = showNote ? "Note (click to hide if empty)" : "Add a note";
+      noteBtn.onclick = function(e){ e.stopPropagation();
+        if(noteOpen[id]){ noteOpen[id] = false; }
+        else { noteOpen[id] = true; pendingFocusNote = id; }
+        render();
+      };
+
       var rm = document.createElement("button"); rm.type="button"; rm.className="rm"; rm.textContent="✕"; rm.title="Send back to pieces";
       rm.onclick = function(e){ e.stopPropagation(); moveItem(id,"palette"); };
 
-      btns.appendChild(up); btns.appendChild(dn); btns.appendChild(grp); btns.appendChild(rel); btns.appendChild(rm);
+      btns.appendChild(up); btns.appendChild(dn); btns.appendChild(grp); btns.appendChild(rel); btns.appendChild(noteBtn); btns.appendChild(rm);
       head.appendChild(btns);
       card.appendChild(head);
 
-      var detail = document.createElement("textarea");
-      detail.className = "detail";
-      detail.rows = 1;
-      detail.placeholder = "Optional notes";
-      detail.value = details[id] || "";
-      detail.setAttribute("draggable","false");
-      detail.addEventListener("input", function(){ details[id] = detail.value; updateSummary(); });
-      detail.addEventListener("click", function(e){ e.stopPropagation(); });
-      detail.addEventListener("mousedown", function(e){ e.stopPropagation(); card.setAttribute("draggable","false"); });
-      detail.addEventListener("focus", function(){ card.setAttribute("draggable","false"); });
-      detail.addEventListener("blur", function(){ card.setAttribute("draggable","true"); });
-      card.appendChild(detail);
+      if(noteOpen[id] || (details[id] || "").trim().length > 0){
+        var detail = document.createElement("textarea");
+        detail.className = "detail";
+        detail.rows = 1;
+        detail.placeholder = "Optional notes";
+        detail.value = details[id] || "";
+        detail.setAttribute("draggable","false");
+        detail.addEventListener("input", function(){ details[id] = detail.value; updateSummary(); });
+        detail.addEventListener("click", function(e){ e.stopPropagation(); });
+        detail.addEventListener("mousedown", function(e){ e.stopPropagation(); card.setAttribute("draggable","false"); });
+        detail.addEventListener("focus", function(){ card.setAttribute("draggable","false"); });
+        detail.addEventListener("blur", function(){ card.setAttribute("draggable","true"); });
+        card.appendChild(detail);
+        if(pendingFocusNote === id){ pendingFocusNote = null; setTimeout(function(){ detail.focus(); }, 0); }
+      }
     } else {
       card.appendChild(txt);
     }
@@ -478,7 +495,6 @@
       var num = document.createElement("div"); num.className="num"; num.textContent = step;
       var body = document.createElement("div"); body.className="body";
       body.appendChild(makeCard(id, {controls:true}));
-      if(grouped){ var tag=document.createElement("div"); tag.className="grouptag"; tag.textContent="↳ grouped"; body.appendChild(tag); }
       row.appendChild(num); row.appendChild(body);
       plz.appendChild(row);
     });
@@ -800,7 +816,7 @@
   document.getElementById("customInput").addEventListener("keydown", function(e){ if(e.key==="Enter") addCustom(); });
   document.getElementById("btnReset").onclick = function(){ if(confirm("Clear everything and start over?")) reset(); };
   document.getElementById("btnCopy").onclick = copyResults;
-  document.getElementById("btnDownload").onclick = downloadResults;
+  document.getElementById("btnDownload").onclick = function(){ buildPreview(); document.getElementById("previewOverlay").classList.add("open"); window.print(); };
   document.getElementById("btnPreview").onclick = openPreview;
   document.getElementById("btnClosePreview").onclick = closePreview;
   document.getElementById("btnPdf").onclick = function(){ buildPreview(); window.print(); };
