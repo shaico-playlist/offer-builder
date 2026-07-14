@@ -149,6 +149,15 @@
   .pv-conn{font-size:13.5px; color:#5b21b6; padding:4px 0}
   .pv-conn .n{color:var(--muted)}
   .pv-empty{color:#9aa1ad; font-size:13.5px}
+  /* when saving the preview as a PDF, print only the offer sheet */
+  @media print {
+    body > *:not(#previewOverlay){ display:none !important; }
+    #previewOverlay{ position:static !important; display:block !important; background:#fff !important; padding:0 !important; overflow:visible !important; }
+    #previewOverlay .modal{ box-shadow:none !important; max-width:none !important; border-radius:0 !important; }
+    #previewOverlay .modal-head button{ display:none !important; }
+    #previewOverlay .modal-body{ max-height:none !important; overflow:visible !important; }
+    .modal, .modal-body, .pv-step, .badge{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  }
 </style>
 </head>
 <body>
@@ -222,7 +231,7 @@
 
 <div class="overlay" id="previewOverlay">
   <div class="modal">
-    <div class="modal-head"><h3>Offer preview</h3><button id="btnClosePreview">Close</button></div>
+    <div class="modal-head"><h3>Offer preview</h3><div style="display:flex;gap:8px"><button class="primary" id="btnPdf">Save as PDF</button><button id="btnClosePreview">Close</button></div></div>
     <div class="modal-body" id="previewBody"></div>
   </div>
 </div>
@@ -238,14 +247,14 @@
     {id:"p_cadence",label:"Recurring or one-time",          sub:"Is there an autopay, or a single payment? How often it charges"},
     {id:"p_bill",   label:"How & when they're billed",      sub:"First charge, future charge dates, proration"},
     {id:"p_agree",  label:"What they agree to",             sub:"Terms, waiver, signature, policies"},
-    {id:"p_perks",  label:"Perks & discounts",              sub:"Member pricing, % off other services or retail"},
+    {id:"p_perks",  label:"Perks & discounts",              sub:"Member pricing, % off services/retail, intro offers (first month free, 50% off month one, first-50 deal)"},
     {id:"p_elig",   label:"Who's eligible",                 sub:"Open to everyone, or limited (student, member-only, capped spots)"},
     {id:"p_end",    label:"How it renews or ends",          sub:"Auto-renews, rolls over, or expires after a set time"},
     {id:"p_commit", label:"Commitment period",              sub:"Minimum term locked in before they can cancel (e.g. 3 months)"},
     {id:"p_cancel", label:"How they cancel",                sub:"What the client does to cancel — and when it takes effect"},
     {id:"p_fail",   label:"If a payment fails",             sub:"Retries, pausing, who gets notified"},
     {id:"p_track",  label:"What you track",                 sub:"Active members, revenue, who's not using it, who's expiring"},
-    {id:"p_self",   label:"What clients can do themselves", sub:"Cancel, pause/freeze, update card, add a family member"},
+    {id:"p_self",   label:"What clients can do themselves", sub:"Buy it online, cancel, pause/freeze, update card, add a family member"},
     {id:"p_msg",    label:"Client messages",                sub:"Confirmations, reminders, “here's what you signed up for”"}
   ];
 
@@ -794,6 +803,7 @@
   document.getElementById("btnDownload").onclick = downloadResults;
   document.getElementById("btnPreview").onclick = openPreview;
   document.getElementById("btnClosePreview").onclick = closePreview;
+  document.getElementById("btnPdf").onclick = function(){ buildPreview(); window.print(); };
   document.getElementById("previewOverlay").addEventListener("click", function(e){ if(e.target === this) closePreview(); });
   document.getElementById("offerName").addEventListener("input", updateSummary);
   document.getElementById("notes").addEventListener("input", updateSummary);
